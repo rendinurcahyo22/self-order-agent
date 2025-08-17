@@ -1,0 +1,8 @@
+[project]
+name = "self_order_agent"
+version = "0.1.0"
+description = "A self-ordering agent using the ADK."
+authors = [{ name = "Your Name", email = "you@example.com" }]
+
+[project.entry-points."adk.agents"]
+self-order-agent = "agent:root_agent"
