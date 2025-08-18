@@ -2,3 +2,5 @@ google-adk
 PyYAML
 python-dotenv
 google-cloud-bigquery
+qrcode
+Pillow

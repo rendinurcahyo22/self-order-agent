@@ -1,0 +1,77 @@
+# Ignore files not needed in production
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing and development files
+test_*.py
+*_test.py
+tests/
+pytest_cache/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Local environment files
+.env
+.env.local
+.env.production.local
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development artifacts
+test_*.py
+test_*.html
+test_*.png
+*_test.py
+diagnostics.py
+adk_web_ui_test.html
+
+# Git
+.git/
+.gitignore

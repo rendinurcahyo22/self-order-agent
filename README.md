@@ -1,18 +1,19 @@
 # Self-Order Agent 🍽️
 
-A sophisticated multi-tool AI agent built with Google's Agent Development Kit (ADK) that enables customers to seamlessly order food through natural conversation. The agent handles the complete ordering workflow including menu browsing, order creation, promotion application, payment processing, and order management.
+A production-ready multi-tool AI agent built with Google's Agent Development Kit (ADK) that enables customers to seamlessly order food through natural conversation. The agent handles the complete ordering workflow including menu browsing, order creation, promotion application, **QR code payment processing**, and order management.
 
 ## 🎯 Overview
 
-This project demonstrates a production-ready conversational AI agent that can:
+This project demonstrates a **production-ready** conversational AI agent that can:
 
 - **Browse Menus**: Retrieve and display food items from BigQuery database
-- **Manage Orders**: Create, save, and retrieve customer orders
+- **Manage Orders**: Create, save, and retrieve customer orders  
 - **Apply Promotions**: Validate and apply discount codes and special offers
-- **Process Payments**: Handle secure payment transactions with UUID tracking
+- **Process Payments**: Generate **QRIS QR codes** for mobile payments with secure transaction tracking
+- **QR Code Display**: Render payment QR codes directly in ADK Web UI with embedded HTML
 - **Provide Support**: Answer questions and guide customers through the ordering process
 
-The agent uses Google's Agent Development Kit (ADK) framework with Gemini 2.5 Flash model and integrates with Google Cloud BigQuery for data persistence.
+The agent uses Google's Agent Development Kit (ADK) framework with Gemini 2.5 Flash model and integrates with Google Cloud BigQuery for data persistence. **Ready for Cloud Run deployment!**
 
 ## 🏗️ Architecture
 
@@ -31,10 +32,11 @@ The agent uses Google's Agent Development Kit (ADK) framework with Gemini 2.5 Fl
                        │  • get_menu      │
                        │  • get_promo     │
                        │  • process_payment│
+                       │  • generate_qr   │
                        └──────────────────┘
 ```
 
-The system follows a **single-agent architecture** with multiple tools, replacing complex multi-agent workflows with a streamlined approach that's easier to maintain and debug.
+The system follows a **single-agent architecture** with multiple tools, including **QR code generation** for seamless mobile payments. The agent generates QRIS-compatible QR codes that display directly in the ADK Web UI using embedded HTML with data URIs.
 
 ## 👤 User Identification & Session Management
 
@@ -110,6 +112,8 @@ pip install -r requirements.txt
 - `google-cloud-bigquery` - BigQuery client library  
 - `python-dotenv` - Environment variable management
 - `PyYAML` - YAML configuration support
+- `qrcode` - QR code generation library
+- `Pillow` - Image processing for QR codes
 
 ### 3. Environment Configuration
 
@@ -169,6 +173,146 @@ CREATE TABLE `your-project.self_order_agent.promo` (
 );
 ```
 
+## 🚀 Cloud Run Deployment
+
+This project is **production-ready** and can be deployed to Google Cloud Run with a single command.
+
+### Prerequisites for Deployment
+- Google Cloud Project with billing enabled
+- Docker installed and running
+- gcloud CLI installed and authenticated
+
+### One-Command Deployment
+
+```bash
+# Deploy to Cloud Run (replace with your project ID and API key)
+./deploy.sh YOUR-PROJECT-ID us-central1 YOUR-GOOGLE-API-KEY
+
+# For Jakarta BigQuery with US Cloud Run (cross-region optimization)
+./deploy.sh YOUR-PROJECT-ID us-central1 YOUR-GOOGLE-API-KEY asia-southeast2
+```
+
+**🌏 Cross-Region Setup (Jakarta BigQuery + US Cloud Run):**
+- ✅ **Optimized for Indonesia users**: Cloud Run in US for better global user latency
+- ✅ **Data in Jakarta**: BigQuery remains in Asia-Southeast2 for data residency  
+- ✅ **Acceptable latency**: +50-100ms for cross-region calls (good for restaurant ordering)
+- ✅ **Cost effective**: Minimal egress charges for typical usage
+
+The deployment script will:
+1. ✅ Enable required Google Cloud APIs (including Secret Manager)
+2. 🏗️ Build the container image using Cloud Build
+3. 🚀 Deploy to Cloud Run with optimized settings
+4. 🔑 Set environment variables (including BigQuery region)
+5. 🌐 Provide the public service URL
+6. 📊 Show monitoring and logging commands
+
+### Environment Variable Management
+
+**🔑 Option 1: Deploy with API Key (Quick)**
+```bash
+# Include API key in deployment command
+./deploy.sh my-project us-central1 "your-api-key-here"
+```
+
+**🔐 Option 2: Use Google Secret Manager (Recommended for Production)**
+```bash
+# Deploy first, then set up secure secrets
+./deploy.sh my-project us-central1
+./manage-env.sh my-project us-central1 setup-secrets
+```
+
+**⚙️ Option 3: Manual Environment Variable Management**
+```bash
+# Deploy then manage variables individually
+./deploy.sh my-project us-central1
+./manage-env.sh my-project us-central1 set GOOGLE_API_KEY=your-key
+./manage-env.sh my-project us-central1 list
+```
+
+### Manual Deployment Steps
+
+If you prefer manual deployment:
+
+```bash
+# 1. Set your project
+gcloud config set project YOUR-PROJECT-ID
+
+# 2. Enable APIs
+gcloud services enable cloudbuild.googleapis.com run.googleapis.com containerregistry.googleapis.com bigquery.googleapis.com secretmanager.googleapis.com
+
+# 3. Build container
+gcloud builds submit --tag gcr.io/YOUR-PROJECT-ID/self-order-agent
+
+# 4. Deploy to Cloud Run with environment variables
+gcloud run deploy self-order-agent \
+  --image gcr.io/YOUR-PROJECT-ID/self-order-agent \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --memory 512Mi \
+  --cpu 1 \
+  --set-env-vars "PYTHONPATH=/app,PYTHONUNBUFFERED=1,PROJECT_ID=YOUR-PROJECT-ID,BIGQUERY_DATASET=self_order_agent,GOOGLE_API_KEY=YOUR-API-KEY"
+```
+
+### Required Environment Variables
+
+Your Cloud Run service needs these environment variables:
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `GOOGLE_API_KEY` | Google AI Studio API Key | ✅ Yes | `AIzaSyC...` |
+| `PROJECT_ID` | Google Cloud Project ID | ✅ Yes | `my-project-123` |
+| `BIGQUERY_DATASET` | BigQuery dataset name | ✅ Yes | `self_order_agent` |
+| `GOOGLE_CLOUD_REGION` | BigQuery region | ✅ Yes | `asia-southeast2` |
+| `PYTHONPATH` | Python import path | ✅ Yes | `/app` |
+| `PYTHONUNBUFFERED` | Python output buffering | ✅ Yes | `1` |
+| `GOOGLE_GENAI_USE_VERTEXAI` | Use Vertex AI instead | ❌ No | `TRUE` |
+
+### Security Best Practices
+
+**🔐 For Production (Recommended):**
+Use Google Secret Manager to store sensitive data:
+```bash
+# Create secret
+echo "your-api-key" | gcloud secrets create google-api-key --data-file=-
+
+# Update service to use secret
+gcloud run services update self-order-agent \
+  --region us-central1 \
+  --set-secrets "GOOGLE_API_KEY=google-api-key:latest"
+```
+
+**⚠️ Environment Variable Security:**
+- ❌ **Never commit API keys** to your repository
+- ✅ **Use Secret Manager** for production deployments
+- ✅ **Rotate API keys** regularly
+- ✅ **Use least-privilege** IAM roles
+- ✅ **Enable authentication** for production services
+
+### Production Configuration
+
+The deployment includes:
+- **Auto-scaling**: 0 to 10 instances based on traffic
+- **Resource limits**: 1 CPU, 512Mi memory per instance
+- **Health checks**: HTTP health endpoints for reliability
+- **Environment**: Optimized Python 3.12 container
+- **Security**: Non-root user execution
+
+### Testing Your Deployment
+
+Once deployed, test your Cloud Run service:
+
+```bash
+# Get your service URL
+SERVICE_URL=$(gcloud run services describe self-order-agent --platform managed --region us-central1 --format 'value(status.url)')
+
+# Test QR code generation
+curl -X POST $SERVICE_URL/process_payment \
+  -H 'Content-Type: application/json' \
+  -d '{"amount": 25.50, "currency": "USD", "payment_method": "qris"}'
+```
+
 ## 🧪 Testing Your Agent
 
 ### Method 1: ADK Web Interface (Recommended)
@@ -209,12 +353,23 @@ Apply discount code STUDENT10 to my order
 What deals are available today?
 ```
 
-#### 💳 Payment Tests
+#### 💳 Payment & QR Code Tests
 ```
 Process payment for $25.50
-I want to pay with credit card
-Complete my payment of $15.75
-Process payment in EUR currency
+I want to pay with QRIS for $15.75
+Generate QR code for my payment
+Process payment using mobile payment
+Pay $30 with QR code
+I'd like to pay via mobile banking
+```
+
+#### 📱 QR Code Display Tests
+```
+Show me the QR code for payment
+Can you display the payment QR code?
+I need to scan the QR code to pay
+Generate QR for $25.50 payment
+How do I pay using QR code?
 ```
 
 #### � Complete Workflow Tests
@@ -367,28 +522,41 @@ adk api_server --port 8003
 ### Project Structure
 ```
 self-order-agent/
-├── agent.py              # Main agent definition and tools
-├── __init__.py           # Package initialization  
-├── self_order_agent.py   # Compatibility shim
-├── test_agent.py         # Unit tests
-├── test_workflow.py      # Workflow test prompts
-├── requirements.txt      # Python dependencies
-├── pyproject.toml       # Project metadata
-├── .env                 # Environment variables (create this)
-├── README.md            # This file
-└── data/                # Sample data files
-    ├── menu.csv
-    ├── orders.csv
-    ├── orders.json
-    └── promos.csv
+├── 📄 Core Application
+│   ├── agent.py              # Main agent with QR code generation
+│   ├── __init__.py           # Package initialization  
+│   └── requirements.txt      # Python dependencies
+│
+├── ⚙️ Configuration  
+│   ├── pyproject.toml        # Project metadata & ADK entry point
+│   ├── .env                  # Environment variables (create this)
+│   └── .env.example          # Environment template
+│
+├── 🚢 Deployment
+│   ├── Dockerfile            # Optimized container configuration
+│   ├── cloudrun.yaml         # Cloud Run service specification
+│   ├── deploy.sh             # One-command deployment script
+│   └── .dockerignore         # Docker build exclusions
+│
+├── 📊 Data
+│   └── data/                 # Sample data files
+│       ├── menu.csv          # Restaurant menu items
+│       ├── orders.csv        # Order templates  
+│       └── promos.csv        # Available promotions
+│
+└── 📚 Documentation
+    └── README.md             # This comprehensive guide
 ```
 
 ### Key Features
-- **Automatic .env loading**: Environment variables loaded automatically
-- **Fallback mode**: Works without ADK for local development/testing
-- **Modern ADK patterns**: Uses latest Agent class and function tools
-- **Error handling**: Graceful handling of missing dependencies
-- **Comprehensive testing**: Unit tests and workflow test prompts
+- **🎯 Production Ready**: Optimized for Cloud Run deployment
+- **📱 QR Code Generation**: QRIS-compatible payment QR codes
+- **🖥️ ADK Web UI Compatible**: QR codes display directly in web interface
+- **🔧 Auto Environment Loading**: Environment variables loaded automatically
+- **🔄 Fallback Mode**: Works without ADK for local development/testing
+- **🏆 Modern ADK Patterns**: Uses latest Agent class and function tools
+- **⚡ Error Handling**: Graceful handling of missing dependencies
+- **🧪 Container Ready**: Dockerfile optimized for production deployment
 
 ### Troubleshooting
 
@@ -401,11 +569,20 @@ lsof -ti:8000 | xargs kill -9
 adk web --port 8001
 ```
 
+**QR code generation errors:**
+```bash
+# Ensure dependencies are installed in your environment
+pip install qrcode Pillow
+
+# Test QR generation directly
+python -c "import qrcode; print('QR code library working!')"
+```
+
 **ADK import errors:**
 ```bash
 # Force local fallback mode
 export FORCE_LOCAL_ADK_FALLBACK=1
-python test_workflow.py
+python -c "from agent import process_payment; print('Agent working!')"
 ```
 
 **BigQuery permissions:**
@@ -414,13 +591,37 @@ python test_workflow.py
 gcloud auth application-default login
 ```
 
+**Cloud Run deployment issues:**
+```bash
+# Check Docker is running
+docker info
+
+# Verify gcloud authentication
+gcloud auth list
+
+# Check project permissions
+gcloud projects get-iam-policy YOUR-PROJECT-ID
+```
+
 ## 📚 Next Steps
 
-- **Extend functionality**: Add more tools like inventory management, delivery tracking
-- **Deploy to production**: Use Cloud Run or Vertex AI Agent Engine
-- **Add memory**: Implement conversation history and user preferences  
-- **Enhance security**: Add input validation and rate limiting
-- **Monitor performance**: Integrate with Google Cloud Trace and Logging
+### 🎯 Production Enhancements
+- **🔐 Enhanced Security**: Add input validation, rate limiting, and API authentication
+- **📊 Advanced Analytics**: Integrate with Google Cloud Monitoring and Logging
+- **🚀 Auto-scaling**: Configure Cloud Run for high-traffic scenarios
+- **🌍 Multi-region**: Deploy across multiple regions for global availability
+
+### 🔧 Feature Extensions  
+- **📦 Inventory Management**: Real-time stock tracking and availability updates
+- **🚚 Delivery Tracking**: Integration with delivery services and GPS tracking
+- **💰 Payment Gateways**: Support for multiple payment processors beyond QRIS
+- **🎨 Custom Branding**: White-label solution for different restaurants
+
+### 🧠 AI Improvements
+- **💭 Memory & Context**: Implement conversation history and user preferences  
+- **🤖 Multi-language**: Support for multiple languages and localization
+- **📈 Recommendations**: AI-powered menu recommendations based on user behavior
+- **📱 Voice Integration**: Voice ordering capabilities for accessibility
 
 ## 🤝 Contributing
 
@@ -436,11 +637,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Resources
 
+### 📖 Documentation
 - [Google ADK Documentation](https://google.github.io/adk-docs/)
 - [ADK Python Samples](https://github.com/google/adk-samples)
 - [Gemini API Documentation](https://ai.google.dev/)
 - [Google Cloud BigQuery](https://cloud.google.com/bigquery/docs)
 
+### ☁️ Deployment & Infrastructure  
+- [Google Cloud Run](https://cloud.google.com/run/docs)
+- [Cloud Build Documentation](https://cloud.google.com/build/docs)
+- [Container Registry](https://cloud.google.com/container-registry/docs)
+
+### 📱 QR Code & Payments
+- [QR Code Python Library](https://pypi.org/project/qrcode/)
+- [QRIS Payment Standard](https://www.bi.go.id/qris/)
+- [Payment Gateway Integration](https://developers.google.com/pay)
+
 ---
 
+**🚀 Ready for production deployment with QR code payments!**  
 **Built with ❤️ using Google Agent Development Kit**
