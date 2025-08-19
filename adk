@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Simple CLI for ADK
+
+if [ "$1" = "web" ]; then
+    # Jalankan server Flask
+    /Users/rendinurcahyo/Repositories/custom-adk/self-order-agent/.venv/bin/python adk_web.py
+else
+    echo "Perintah tidak dikenali. Gunakan: adk web"
+fi
